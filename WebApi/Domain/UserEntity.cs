@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Game.Domain
 {
@@ -34,6 +35,7 @@ namespace Game.Domain
         /// <summary>
         /// Логин должен быть уникальным в системе. Логин решено не делать идентификатором, чтобы у пользователей была возможность в будущем поменять логин.
         /// </summary>
+        [Required]
         public string Login { get; set; }
         public string LastName { get; set; }
         public string FirstName { get; set; }

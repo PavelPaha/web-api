@@ -22,6 +22,7 @@ namespace WebApi.Controllers
             _mapper = mapper;
         }
 
+        [HttpHead("{userId}")]
         [HttpGet("{userId}", Name = nameof(GetUserById))]
         [Produces("application/json", "application/xml")]
         public ActionResult<UserDto> GetUserById([FromRoute] Guid userId)
@@ -105,9 +106,20 @@ namespace WebApi.Controllers
             _userRepository.Update(userFromRepository);
 
             return NoContent();
-
         }
-
+        
+        [HttpDelete("{userId}")]
+        [Produces("application/json", "application/xml")]
+        public IActionResult DeleteUser([FromRoute] Guid userId)
+        {
+            var userToDeleted = _userRepository.FindById(userId);
+            if (userToDeleted == null)
+            {
+                return NotFound();
+            }
+            _userRepository.Delete(userId);
+            return NoContent();
+        }
         
         private void CheckUserForErrors(UserInfoDto user)
         {

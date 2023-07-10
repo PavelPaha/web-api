@@ -41,7 +41,7 @@ namespace WebApi
             }).AddNewtonsoftJson(options =>
             {
                 options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
-            });;
+            });
             services.AddAutoMapper(cfg =>
                 {
                     cfg.CreateMap<UserEntity, UserDto>()

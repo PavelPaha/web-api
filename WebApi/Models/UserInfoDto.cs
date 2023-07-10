@@ -5,6 +5,7 @@ namespace WebApi.Models
     public class UserInfoDto
     {
         [Required]
+        [RegularExpression("^[0-9\\p{L}]*$", ErrorMessage = "Login should contain only letters or digits")]
         public string Login { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }

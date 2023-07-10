@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Newtonsoft.Json;
+using Swashbuckle.AspNetCore.Annotations;
 using WebApi.Models;
 
 namespace WebApi.Controllers
@@ -161,6 +162,14 @@ namespace WebApi.Controllers
             Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(paginationHeader));
             
             return Ok(users);
+        }
+
+        [HttpOptions]
+        [SwaggerResponse(200, "OK")]
+        public IActionResult GetUsersOptions()
+        {
+            Response.Headers.Add("Allow", "POST, GET, OPTIONS");
+            return Ok();
         }
 
         private string GeneratePaginationLinks(int pageNumber, int pageSize)

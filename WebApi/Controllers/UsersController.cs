@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
 using AutoMapper;
 using Game.Domain;
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +32,7 @@ namespace WebApi.Controllers
             return Ok(userDto);
         }
 
+        
         [HttpPost]
         [Produces("application/json", "application/xml")]
         public IActionResult CreateUser([FromBody] UserInfoDto user)
@@ -40,7 +42,7 @@ namespace WebApi.Controllers
 
             if (string.IsNullOrEmpty(user.Login) || !user.Login.All(char.IsLetterOrDigit))
                 ModelState.AddModelError(nameof(UserInfoDto.Login),
-                    "Login must consist of symbols or numbers");
+                    "Login should contain only letters or digits");
 
             if (!ModelState.IsValid)
                 return UnprocessableEntity(ModelState);
@@ -52,6 +54,54 @@ namespace WebApi.Controllers
                 nameof(GetUserById),
                 new { userId = userEntityFromRepository.Id },
                 userEntityFromRepository.Id);
+        }
+
+        
+        [HttpPut("{userId}")]
+        [Consumes("application/json")]
+        [Produces("application/json", "application/xml")]
+        public IActionResult UpdateUser([FromBody] UserInfoDto user, [FromRoute] Guid userId)
+        {
+            if (user == null || userId == Guid.Empty)
+                return BadRequest();
+            CheckUserForErrors(user);
+
+            var userEntity = new UserEntity(userId);
+            _mapper.Map(user, userEntity);
+            
+            if (!ModelState.IsValid)
+                return UnprocessableEntity(ModelState);
+            
+            _userRepository.UpdateOrInsert(userEntity, out var isInserted);
+            if (isInserted)
+            {
+                return CreatedAtRoute(
+                    nameof(GetUserById),
+                    new { userId = userEntity.Id },
+                    userEntity.Id);
+            }
+            return NoContent();
+        }
+
+        
+        private void CheckUserForErrors(UserInfoDto user)
+        {
+            if (string.IsNullOrEmpty(user.Login) || !user.Login.All(char.IsLetterOrDigit))
+                ModelState.AddModelError(nameof(UserInfoDto.Login),
+                    "Login should contain only letters or digits");
+
+            var userEntity = _mapper.Map<UserEntity>(user);
+            if (string.IsNullOrEmpty(userEntity.FirstName))
+            {
+                ModelState.AddModelError(nameof(UserInfoDto.FirstName),
+                    "First name not set");
+            }
+
+            if (string.IsNullOrEmpty(userEntity.LastName))
+            {
+                ModelState.AddModelError(nameof(UserInfoDto.LastName),
+                    "Last name not set");
+            }
         }
     }
 }

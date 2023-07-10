@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using AutoMapper;
 using Game.Domain;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using Newtonsoft.Json;
 using WebApi.Models;
 
 namespace WebApi.Controllers
@@ -15,11 +18,13 @@ namespace WebApi.Controllers
     {
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
+        private readonly LinkGenerator _linkGenerator;
 
-        public UsersController(IUserRepository userRepository, IMapper mapper)
+        public UsersController(IUserRepository userRepository, IMapper mapper, LinkGenerator linkGenerator)
         {
             _userRepository = userRepository;
             _mapper = mapper;
+            _linkGenerator = linkGenerator;
         }
 
         [HttpHead("{userId}")]
@@ -120,7 +125,53 @@ namespace WebApi.Controllers
             _userRepository.Delete(userId);
             return NoContent();
         }
-        
+
+        [HttpGet(Name = nameof(GetUsers))]
+        [Produces("application/json", "application/xml")]
+        [ProducesResponseType(typeof(IEnumerable<UserDto>), 200)]
+        public IActionResult GetUsers(int pageNumber = 1, int pageSize = 10)
+        {
+            var limitedPageSize = Math.Max(1, Math.Min(pageSize, 20));
+            var limitedPageNumber = Math.Max(1, pageNumber);
+            
+            var page = _userRepository.GetPage(limitedPageNumber, limitedPageSize);
+            if (page == null || pageNumber > page.TotalCount)
+            {
+                return NotFound();
+            }
+            
+            var users = _mapper.Map<IEnumerable<UserDto>>(page);
+            var previousPageLink = page.HasPrevious 
+                ? GeneratePaginationLinks(limitedPageNumber - 1, limitedPageSize) 
+                : null;
+            
+            var nextPageLink = page.HasNext 
+                ? GeneratePaginationLinks(limitedPageNumber + 1, limitedPageSize)
+                : null;
+            
+            var paginationHeader = new
+            {
+                previousPageLink,
+                nextPageLink,
+                totalCount = page.TotalCount,
+                pageSize = page.PageSize,
+                currentPage = page.CurrentPage,
+                totalPages = page.TotalPages,
+            };
+            Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(paginationHeader));
+            
+            return Ok(users);
+        }
+
+        private string GeneratePaginationLinks(int pageNumber, int pageSize)
+        {
+            return _linkGenerator.GetUriByRouteValues(HttpContext, nameof(GetUsers), new
+            {
+                pageNumber,
+                pageSize
+            });
+        }
+
         private void CheckUserForErrors(UserInfoDto user)
         {
             if (string.IsNullOrEmpty(user.Login) || !user.Login.All(char.IsLetterOrDigit))
